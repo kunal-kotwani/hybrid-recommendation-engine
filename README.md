@@ -457,6 +457,14 @@ The final evaluation compares:
 
 ### Final Results
 
+### Performance Comparison
+
+![Performance Comparison](results/performance.png)
+
+### Dynamic Weighting
+
+![Dynamic Weighting](results/dynamic_weighting.png)
+
 Replace the values below with the actual values obtained from the notebook.
 
 | Model             | Precision@10 |    Recall@10 |      NDCG@10 |
