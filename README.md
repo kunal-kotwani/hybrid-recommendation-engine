@@ -1,77 +1,89 @@
 # Hybrid Recommendation Engine with Cold-Start Handling
 
+A hybrid movie recommendation system that combines **Collaborative Filtering** and **Content-Based Filtering** with **dynamic weighting** to handle both warm users and cold-start users.
+
+The project is built using the **MovieLens 1M dataset** and evaluates recommendations using **Precision@10, Recall@10, and NDCG@10**.
+
+---
+
 ## 1. Project Overview
 
-Recommendation systems are widely used by platforms such as Netflix, Amazon, Spotify, and YouTube to suggest relevant content to users.
+Recommendation systems are widely used by platforms such as Netflix, Amazon, Spotify, and YouTube to personalize content for users.
 
-However, a major challenge is the **Cold-Start Problem**.
+A major challenge is the **cold-start problem**:
 
-When a new user joins a platform, the system has little or no information about their preferences. Traditional collaborative filtering methods struggle in this situation because they depend on previous user-item interactions.
+> How can a recommendation system provide useful recommendations when a user has very little interaction history?
 
-This project develops a **Hybrid Recommendation Engine** that combines:
+This project addresses this problem using a **Hybrid Recommendation Engine**.
+
+The system combines:
 
 * **Collaborative Filtering using SVD**
 * **Content-Based Filtering using TF-IDF**
-* **Dynamic weighting based on user interaction history**
-* **Cold-start handling for users with fewer than 5 interactions**
+* **Dynamic weighting based on user interactions**
+* **Popularity-based fallback for cold-start users**
+* **Precision@10, Recall@10, and NDCG@10 evaluation**
 
-The system dynamically changes the importance of collaborative and content-based recommendations depending on how much information is available about a user.
+The main idea is simple:
+
+**Less user history → rely more on content**
+
+**More user history → rely more on collaborative filtering**
 
 ---
 
 ## 2. Problem Statement
 
-Traditional collaborative filtering performs well when users have sufficient interaction history.
+Traditional collaborative filtering works better when sufficient user interaction data is available.
 
-However:
+However, for a new user with very few interactions, collaborative filtering has limited information to work with.
 
-* New users have little or no rating history.
-* New users cannot be represented accurately by collaborative filtering.
-* Recommendations can therefore become inaccurate for new users.
+This creates a cold-start problem.
 
-The goal of this project is to build a recommendation system that can **degrade gracefully when user interaction history is limited**.
+The objective of this project is to build a recommendation system that:
 
-The system should:
-
-1. Combine collaborative filtering and content-based recommendations.
-2. Dynamically adjust their contribution.
-3. Give more importance to content when user history is limited.
-4. Give more importance to collaborative filtering when sufficient interaction history is available.
-5. Evaluate performance separately for cold-start and warm users.
+1. Provides personalized movie recommendations.
+2. Combines collaborative and content-based approaches.
+3. Dynamically changes the contribution of each approach.
+4. Handles users with very limited interaction history.
+5. Evaluates performance separately for cold-start and warm users.
+6. Analyzes failure cases of the recommendation system.
 
 ---
 
 ## 3. Proposed Solution
 
-The proposed system combines two recommendation approaches.
+The system uses three main components:
 
 ### Collaborative Filtering
 
-Collaborative filtering learns user preferences from historical ratings.
+We use **SVD (Singular Value Decomposition)** to learn relationships between users and movies from their ratings.
 
-We use **Singular Value Decomposition (SVD)** to learn latent relationships between users and movies.
-
-When a user has many interactions, collaborative filtering becomes more reliable.
+This component becomes more useful as a user interacts with more movies.
 
 ### Content-Based Filtering
 
-Content-based filtering recommends movies based on their characteristics.
+Movie genres are converted into TF-IDF vectors.
 
-In this project, movie **genres** are converted into numerical TF-IDF vectors.
+Cosine similarity is then used to find movies that are similar to movies the user previously liked.
 
-Cosine similarity is then used to find movies that are similar to movies the user has previously liked.
+This is especially useful when there is little interaction history.
 
-### Dynamic Hybrid Model
+### Dynamic Hybrid Weighting
 
-Instead of using a fixed 50/50 combination, the system dynamically changes the weights.
+Instead of using a fixed 50/50 combination, the system dynamically changes the weights according to the number of user interactions.
 
 The collaborative filtering weight is calculated as:
 
-`CF Weight = interactions / (interactions + 5)`
+```text
+CF Weight = interactions / (interactions + 5)
+```
 
 The content-based weight is:
 
-`Content Weight = 1 - CF Weight`
+```text
+Content Weight = 1 - CF Weight
+```
 
 Therefore:
 
@@ -87,51 +99,43 @@ Therefore:
 |                50 |      0.91 |           0.09 |
 |               100 |      0.95 |           0.05 |
 
-This allows the system to automatically shift from **content-heavy recommendations for sparse users** to **collaborative-filtering-heavy recommendations for experienced users**.
+This allows the system to gradually transition from content-based recommendations to collaborative filtering as more user data becomes available.
 
 ---
 
 ## 4. System Architecture
 
 ```text
-                    MovieLens Dataset
-                           |
-              +------------+------------+
-              |                         |
-              v                         v
-        Rating Data                Movie Data
-              |                         |
-              v                         v
-      Collaborative              Content Features
-       Filtering (SVD)              (TF-IDF)
-              |                         |
-              v                         v
-         CF Score                Content Score
-              |                         |
-              +------------+------------+
-                           |
-                           v
+                 MovieLens 1M Dataset
+                         |
+              +----------+----------+
+              |                     |
+          Ratings Data          Movie Data
+              |                     |
+              ↓                     ↓
+     Collaborative Filtering   Content-Based
+            (SVD)              (TF-IDF)
+              |                     |
+              ↓                     ↓
+        CF Prediction         Similarity Score
+              |                     |
+              +----------+----------+
+                         |
                   Dynamic Weighting
-                           |
-               +-----------+-----------+
-               |                       |
-        Few Interactions        Many Interactions
-               |                       |
-        Content-heavy              CF-heavy
-               |                       |
-               +-----------+-----------+
-                           |
-                           v
-                    Hybrid Score
-                           |
-                           v
-                   Movie Ranking
-                           |
-                           v
-                     Top-K Movies
-                           |
-                           v
-                    Recommendation
+                         |
+              +----------+----------+
+              |                     |
+       More interactions      Fewer interactions
+              |                     |
+         More CF weight       More content weight
+              |                     |
+              +----------+----------+
+                         |
+                         ↓
+                Final Recommendation
+                         |
+                         ↓
+              Precision / Recall / NDCG
 ```
 
 ---
@@ -142,252 +146,149 @@ This project uses the **MovieLens 1M dataset** provided by GroupLens.
 
 The dataset contains approximately:
 
-* 1 million movie ratings
+* 1 million ratings
 * 6,000 users
 * 4,000 movies
-* Ratings from 1 to 5
-* Movie genre information
 
-### Files Used
+### Download Dataset
 
-#### `ratings.dat`
+Download the MovieLens 1M dataset from the official GroupLens website:
 
-Contains:
+https://grouplens.org/datasets/movielens/1m/
 
-* User ID
-* Movie ID
-* Rating
-* Timestamp
+Download:
 
-This file is primarily used for collaborative filtering.
+```text
+ml-1m.zip
+```
 
-#### `movies.dat`
+After extracting it, the dataset contains:
 
-Contains:
+```text
+ml-1m/
+├── ratings.dat
+├── movies.dat
+├── users.dat
+└── README
+```
 
-* Movie ID
-* Movie title
-* Movie genres
+### Required Files
 
-This file is used for content-based filtering.
+The notebook uses:
 
-#### `users.dat`
+```text
+ratings.dat
+movies.dat
+users.dat
+```
 
-Contains demographic information about users.
+`users.dat` is included as part of the original dataset, although the current recommendation model primarily uses `ratings.dat` and `movies.dat`.
 
-It was not required for the main recommendation model.
+### Google Colab Setup
+
+If running the notebook in Google Colab:
+
+1. Download `ml-1m.zip`.
+2. Extract the ZIP file.
+3. Upload `ratings.dat`, `movies.dat`, and `users.dat` to the Colab session.
+4. Run the notebook from the beginning.
+
+The dataset files are **not included in this GitHub repository**. This keeps the repository lightweight and allows users to obtain the dataset directly from its original source.
 
 ---
 
 ## 6. Technologies Used
 
-### Programming Language
-
-* Python
-
-### Libraries
-
-* Pandas
-* NumPy
-* Scikit-learn
-* Scikit-Surprise
-* Matplotlib
-
-### Machine Learning Techniques
-
-* Singular Value Decomposition (SVD)
-* TF-IDF Vectorization
-* Cosine Similarity
-* Hybrid Recommendation
-* Dynamic Weighting
+| Technology      | Purpose                                   |
+| --------------- | ----------------------------------------- |
+| Python          | Main programming language                 |
+| Pandas          | Data processing                           |
+| NumPy           | Numerical operations                      |
+| Scikit-learn    | TF-IDF and cosine similarity              |
+| Scikit-Surprise | SVD collaborative filtering               |
+| Matplotlib      | Visualization                             |
+| Google Colab    | Development and experimentation           |
+| GitHub          | Version control and project documentation |
 
 ---
 
-## 7. Data Preprocessing
+## 7. Project Workflow
 
-The MovieLens `.dat` files use `::` as their separator.
+### Step 1 — Load Dataset
 
-The ratings data was loaded into a Pandas DataFrame with the following columns:
+The MovieLens ratings and movie information are loaded using Pandas.
 
-```text
-userId
-movieId
-rating
-timestamp
-```
+### Step 2 — Train/Test Split
 
-The movie data was loaded as:
+The ratings are divided into training and testing data.
 
-```text
-movieId
-title
-genres
-```
+The training data is used to build the recommendation model.
 
-For content-based filtering, the `|` separator between genres was replaced with spaces.
+The test data is used to evaluate recommendations.
 
-For example:
+### Step 3 — Collaborative Filtering
 
-```text
-Action|Adventure|Sci-Fi
-```
+An SVD model is trained using the training ratings.
 
-becomes:
+The model predicts how strongly a user may prefer a particular movie.
 
-```text
-Action Adventure Sci-Fi
-```
-
-This allows the genres to be processed using TF-IDF.
-
----
-
-## 8. Collaborative Filtering — SVD
-
-Collaborative filtering uses user rating patterns to predict how much a user may like an unseen movie.
-
-The project uses the **SVD algorithm** from the Surprise library.
-
-The main configuration is:
-
-```python
-SVD(
-    n_factors=100,
-    n_epochs=20,
-    random_state=42
-)
-```
-
-The ratings dataset was divided into:
-
-* 80% training data
-* 20% testing data
-
-The SVD model was trained using the training ratings.
-
-The predicted rating is then normalized to a 0–1 range so that it can be combined with the content-based score.
-
----
-
-## 9. Content-Based Filtering
-
-The content-based component uses movie genres to identify similar movies.
-
-### Step 1 — TF-IDF
+### Step 4 — Content-Based Filtering
 
 Movie genres are converted into TF-IDF vectors.
 
-For example:
+Cosine similarity is used to measure the similarity between movies.
 
-```text
-Toy Story → Animation Comedy Children's
-```
+If a user has previously liked a movie, similar movies receive higher content-based scores.
 
-The TF-IDF representation allows the system to compare movies mathematically.
+### Step 5 — Dynamic Hybrid Scoring
 
-### Step 2 — Cosine Similarity
-
-Cosine similarity measures how similar two movie genre vectors are.
-
-A similarity closer to `1` means the movies are more similar.
-
-For a user, the system:
-
-1. Finds movies the user rated 4 or 5.
-2. Finds movies similar to those liked movies.
-3. Calculates the average similarity.
-4. Uses this as the content-based recommendation score.
-
----
-
-## 10. Hybrid Recommendation
-
-The final recommendation score combines collaborative filtering and content-based scores.
-
-The basic hybrid formula is:
+The system combines:
 
 ```text
 Hybrid Score =
-(CF Weight × CF Score)
+CF Weight × CF Score
 +
-(Content Weight × Content Score)
+Content Weight × Content Score
 ```
 
 The weights depend on the number of interactions available for the user.
 
-This prevents the system from relying heavily on collaborative filtering when there is not enough user history.
+### Step 6 — Cold-Start Simulation
+
+The original MovieLens 1M dataset does not naturally contain users with fewer than five ratings.
+
+Therefore, an artificial cold-start evaluation scenario is created.
+
+For selected users:
+
+* Only 3 ratings are exposed as the user's known history.
+* Their remaining ratings are hidden.
+* The hidden ratings are used as ground truth for evaluation.
+
+This simulates a new user who has only a few interactions with the platform.
+
+### Step 7 — Cold-Start Recommendation
+
+For users with very limited history, content-based recommendations become more important.
+
+A popularity score is also used as a fallback signal on the collaborative side because a reliable personalized SVD prediction cannot be assumed for an artificially cold user.
+
+### Step 8 — Evaluation
+
+Recommendations are evaluated using:
+
+* Precision@10
+* Recall@10
+* NDCG@10
+
+Performance is analyzed separately for:
+
+* Cold-start users
+* Warm users
 
 ---
 
-## 11. Cold-Start Handling
-
-### What is Cold Start?
-
-A cold-start user is a user who has very few or no previous interactions with the system.
-
-Collaborative filtering struggles with such users because there is insufficient information to learn their preferences.
-
-### Problem with MovieLens 1M
-
-The MovieLens 1M dataset does not naturally contain users with fewer than 5 ratings.
-
-Therefore, an artificial cold-start evaluation scenario was constructed.
-
-### Cold-Start Experiment
-
-Selected users with sufficient original rating history were chosen.
-
-For each selected user:
-
-* Only **3 ratings** were exposed to the recommendation system.
-* The remaining ratings were hidden.
-* The hidden ratings were used as ground truth during evaluation.
-
-Therefore, from the model's perspective:
-
-```text
-Original User
-      |
-      v
-Many historical ratings
-      |
-      v
-Only 3 ratings exposed
-      |
-      v
-Cold-start user
-```
-
-The system then generated recommendations using the limited information.
-
-Movies that the user rated **4 or 5** in the hidden portion were considered relevant recommendations.
-
----
-
-## 12. Cold-Start Hybrid Strategy
-
-For cold-start users, collaborative filtering has limited personalization capability.
-
-Therefore, the system uses:
-
-* Content similarity as the main personalized signal.
-* Movie popularity as a fallback collaborative signal.
-* Dynamic weighting to give greater importance to content when interactions are limited.
-
-For example, with 3 interactions:
-
-```text
-CF Weight       ≈ 37.5%
-Content Weight  ≈ 62.5%
-```
-
-As the number of interactions increases, the collaborative component becomes more important.
-
----
-
-## 13. Evaluation Metrics
-
-The recommendation system is evaluated using:
+## 8. Evaluation Metrics
 
 ### Precision@10
 
@@ -398,9 +299,7 @@ Precision@10 =
 Relevant Recommended Movies / 10
 ```
 
-A higher value indicates that more recommended movies were relevant.
-
----
+Higher is better.
 
 ### Recall@10
 
@@ -408,300 +307,302 @@ Measures how many of the user's relevant movies were successfully recommended.
 
 ```text
 Recall@10 =
-Relevant Recommended Movies /
-Total Relevant Movies
+Relevant Recommended Movies / Total Relevant Movies
 ```
 
----
+Higher is better.
 
 ### NDCG@10
 
-Normalized Discounted Cumulative Gain considers the position of relevant recommendations.
+NDCG considers the position of relevant recommendations.
 
-A relevant movie appearing near the top of the recommendation list receives more importance than one appearing near the bottom.
+A relevant movie appearing near the top of the recommendation list contributes more than one appearing near the bottom.
 
-NDCG ranges from:
-
-```text
-0 → Poor ranking
-1 → Ideal ranking
-```
+Higher NDCG means better ranking quality.
 
 ---
 
-## 14. Evaluation Setup
+## 9. Results
 
-The system was evaluated separately on:
+The project compares:
 
-### Cold-Start Users
-
-Users with fewer than 5 visible interactions.
-
-In the experiment, users were provided with exactly 3 known interactions.
-
-### Warm Users
-
-Users with 5 or more available interactions.
-
-This allows us to compare how recommendation performance changes as more user information becomes available.
-
----
-
-## 15. Results
-
-The final evaluation compares:
-
-1. Content-Based model
-2. Hybrid model for cold-start users
-3. Hybrid model for warm users
-
-### Final Results
+1. Content-Based Filtering
+2. Cold-Start Hybrid Model
+3. Hybrid Model for Warm Users
 
 ### Performance Comparison
 
 ![Performance Comparison](results/performance.png)
 
+The graph compares the models using:
+
+* Precision@10
+* Recall@10
+* NDCG@10
+
+The exact numerical results are generated directly from the notebook.
+
 ### Dynamic Weighting
 
 ![Dynamic Weighting](results/dynamic_weighting.png)
 
-Replace the values below with the actual values obtained from the notebook.
+This graph demonstrates how the recommendation strategy changes as the user's interaction history increases.
 
-| Model             | Precision@10 |    Recall@10 |      NDCG@10 |
-| ----------------- | -----------: | -----------: | -----------: |
-| Content-Based     | `YOUR_VALUE` | `YOUR_VALUE` | `YOUR_VALUE` |
-| Hybrid Cold-Start | `YOUR_VALUE` | `YOUR_VALUE` | `YOUR_VALUE` |
-| Hybrid Warm Users | `YOUR_VALUE` | `YOUR_VALUE` | `YOUR_VALUE` |
-
-The results demonstrate how the hybrid recommendation approach behaves under different amounts of available user information.
+The system gives greater importance to content-based filtering for users with limited interactions and gradually increases the contribution of collaborative filtering for users with more interactions.
 
 ---
 
-## 16. Dynamic Weighting Results
+## 10. Cold-Start Evaluation
 
-The dynamic weighting mechanism demonstrates the intended behavior:
+The cold-start experiment uses selected MovieLens users who originally have sufficient ratings.
+
+Only **3 ratings are exposed** to the recommendation system.
+
+The remaining ratings are hidden and treated as future interactions.
+
+This allows us to simulate:
 
 ```text
-Low interaction history
-        ↓
-More Content-Based Weight
-        ↓
-Better use of available movie information
-
-High interaction history
-        ↓
-More Collaborative Filtering Weight
-        ↓
-Better use of learned user preferences
+New User
+   ↓
+Only 3 known interactions
+   ↓
+Generate Top-10 Recommendations
+   ↓
+Compare with hidden liked movies
+   ↓
+Calculate Precision@10
+Recall@10
+NDCG@10
 ```
 
-This allows the system to adapt its recommendation strategy based on the amount of information available.
+This is a **simulated cold-start experiment**, not naturally occurring cold-start data.
 
 ---
 
-## 17. Failure Case Analysis
+## 11. Dynamic Weighting Strategy
 
-Cold-start recommendation remains challenging because the system has very little information about a new user's preferences.
+The dynamic weighting mechanism is one of the main features of the project.
 
-A failure case was analyzed by selecting a cold-start user with a low NDCG@10 score.
+For example:
 
-The analysis compared:
+### User with 1 interaction
 
-* The user's 3 known movies
-* Movies recommended by the system
-* Movies the user actually liked in the hidden evaluation data
+```text
+CF Weight      = 0.17
+Content Weight = 0.83
+```
 
-### Possible Reasons for Failure
+The system relies mainly on movie similarity.
 
-1. Only three interactions were available.
-2. The known movies may not represent the user's complete interests.
-3. Genre similarity may not capture deeper movie preferences.
-4. Popularity can introduce movies that are popular but not personally relevant.
-5. Movie descriptions, actors, directors, and tags were not included in the current content model.
+### User with 10 interactions
 
-These limitations can cause the system to recommend movies that are technically similar but not necessarily preferred by the user.
+```text
+CF Weight      = 0.67
+Content Weight = 0.33
+```
+
+The system now relies more heavily on collaborative filtering.
+
+### User with 100 interactions
+
+```text
+CF Weight      = 0.95
+Content Weight = 0.05
+```
+
+The system strongly favors collaborative filtering because sufficient interaction data is available.
+
+This creates a smooth transition instead of using a fixed weighting scheme.
 
 ---
 
-## 18. Limitations
+## 12. Failure Case Analysis
+
+The project also identifies the worst-performing cold-start user based on NDCG@10.
+
+For this user, the following are inspected:
+
+* Known movies
+* Recommended movies
+* Hidden movies that the user actually liked
+
+This helps identify cases where the system fails to understand the user's preferences.
+
+Possible causes include:
+
+* Only three known interactions are available.
+* The user's preferences may span very different genres.
+* Genre information alone may not capture the user's actual taste.
+* Popularity-based fallback can favor generally popular movies rather than highly personalized choices.
+* Limited metadata reduces the effectiveness of content-based filtering.
+
+---
+
+## 13. Limitations
 
 The current implementation has several limitations:
 
-* Content-based filtering uses mainly movie genres.
-* Movie descriptions, actors, directors, and tags are not included.
-* The cold-start experiment is simulated because MovieLens 1M does not naturally contain users with fewer than 5 ratings.
-* Popularity is used as a fallback signal for cold users.
-* The system is currently designed for movie recommendation.
-* The evaluation is performed offline rather than using real-time user feedback.
+1. Movie descriptions, actors, directors, and tags are not currently used.
+2. Content-based filtering mainly uses movie genres.
+3. The cold-start scenario is simulated because MovieLens 1M does not naturally contain users with fewer than five interactions.
+4. The cold-start collaborative component uses popularity as a fallback rather than personalized SVD.
+5. The recommendation system has not been deployed as a production API or web application.
+6. The current implementation evaluates a selected sample of users for computational efficiency.
 
 ---
 
-## 19. Future Improvements
+## 14. Future Improvements
 
-The system can be improved by adding:
+Possible improvements include:
 
-### Better Content Features
-
-Use:
-
-* Movie descriptions
-* Keywords
-* Actors
-* Directors
-* Tags
-
-instead of relying mainly on genres.
-
-### Advanced Embeddings
-
-Use models such as:
-
-* Sentence Transformers
-* BERT-based embeddings
-* Other semantic text embeddings
-
-to understand movie descriptions more deeply.
-
-### Advanced Collaborative Filtering
-
-Experiment with:
-
-* ALS
-* Matrix Factorization
-* Neural Collaborative Filtering
-
-### New-Item Cold Start
-
-Extend the system to handle movies that have very few or no ratings.
-
-### Real-Time Feedback
-
-Allow users to provide:
-
-* Likes
-* Dislikes
-* Ratings
-* Watch history
-
-and update recommendations dynamically.
+* Use movie descriptions and tags for richer content embeddings.
+* Use neural embeddings instead of only TF-IDF.
+* Experiment with ALS or other collaborative filtering algorithms.
+* Develop a more sophisticated cold-start strategy.
+* Use popularity calculated strictly from training data.
+* Tune the dynamic weighting parameter using validation data.
+* Build a Streamlit or web-based recommendation interface.
+* Deploy the model using AWS services.
+* Add real-time user interaction updates.
+* Experiment with larger datasets.
+* Perform hyperparameter tuning and cross-validation.
 
 ---
 
-## 20. Project Structure
+## 15. Project Structure
 
 ```text
 hybrid-recommendation-engine/
 │
 ├── README.md
+├── requirements.txt
+├── LICENSE
 │
 ├── notebook/
 │   └── hybrid_recommender.ipynb
 │
-├── results/
-│   ├── performance.png
-│   └── dynamic_weighting.png
-│
-├── data/
-│   └── README.md
-│
-└── requirements.txt
+└── results/
+    ├── performance.png
+    └── dynamic_weighting.png
 ```
-
-The MovieLens dataset itself does not need to be stored in the repository. Users can download it separately.
 
 ---
 
-## 21. Installation
+## 16. Installation
 
 Clone the repository:
 
 ```bash
 git clone YOUR_GITHUB_REPOSITORY_URL
+```
+
+Move into the project directory:
+
+```bash
 cd hybrid-recommendation-engine
 ```
 
-Install the required libraries:
+Install the required Python libraries:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The notebook can then be opened using Jupyter Notebook, JupyterLab, or Google Colab.
+For Google Colab, the notebook already contains the required installation command for `scikit-surprise`.
 
 ---
 
-## 22. Requirements
+## 17. How to Run
 
-The main Python dependencies are:
+### Google Colab
+
+1. Download or clone this repository.
+2. Open `notebook/hybrid_recommender.ipynb` in Google Colab.
+3. Download the MovieLens 1M dataset.
+4. Extract the dataset.
+5. Upload:
+
+   * `ratings.dat`
+   * `movies.dat`
+   * `users.dat`
+6. Run the notebook from top to bottom.
+7. View the recommendation results and evaluation metrics.
+8. The notebook generates the performance and dynamic weighting graphs.
+
+---
+
+## 18. Example Recommendation Workflow
+
+For a warm user:
 
 ```text
-pandas
-numpy
-scikit-learn
-scikit-surprise
-matplotlib
+User History
+     ↓
+SVD Prediction + Content Similarity
+     ↓
+Dynamic Weight Calculation
+     ↓
+Hybrid Score
+     ↓
+Rank Movies
+     ↓
+Top-10 Recommendations
+```
+
+For a cold-start user:
+
+```text
+Limited User History
+       ↓
+Content Similarity
+       +
+Popularity Fallback
+       ↓
+Dynamic Weighting
+       ↓
+Hybrid Score
+       ↓
+Top-10 Recommendations
 ```
 
 ---
 
-## 23. How to Run
+## 19. Reproducibility
 
-1. Download the MovieLens 1M dataset.
-2. Place `ratings.dat` and `movies.dat` in the expected data location.
-3. Open the notebook.
-4. Install the required Python libraries.
-5. Run the cells sequentially.
-6. Train the SVD model.
-7. Build the TF-IDF content model.
-8. Generate hybrid recommendations.
-9. Construct the cold-start evaluation users.
-10. Evaluate Precision@10, Recall@10, and NDCG@10.
-11. Compare cold-start and warm-user performance.
+To reproduce the experiment:
+
+1. Use the MovieLens 1M dataset.
+2. Install the dependencies from `requirements.txt`.
+3. Upload the required dataset files to the Colab environment.
+4. Run all notebook cells sequentially.
+5. Use the generated metrics and graphs to verify the results.
+
+The project uses fixed random seeds where applicable to make the experimental setup more reproducible.
 
 ---
 
-## 24. Example Workflow
+## 20. Conclusion
 
-```text
-Load MovieLens Dataset
-          ↓
-Data Preprocessing
-          ↓
-      ┌───┴───┐
-      ↓       ↓
-     SVD     TF-IDF
-      ↓       ↓
-   CF Score  Content Score
-      ↓       ↓
-      └───┬───┘
-          ↓
- Dynamic Weighting
-          ↓
-    Hybrid Score
-          ↓
-   Rank Candidate Movies
-          ↓
-      Top 10
-          ↓
-   Recommendation
-```
+This project demonstrates how a recommendation system can combine different recommendation strategies instead of relying on a single algorithm.
+
+The key idea is **adaptive recommendation**:
+
+> When user information is limited, rely more on content. As interaction history grows, rely more on collaborative filtering.
+
+This approach provides a practical framework for handling both **cold-start and warm-user recommendation scenarios**.
 
 ---
 
-## 25. Conclusion
+## 21. Author
 
-This project demonstrates a hybrid recommendation system designed to address the cold-start problem.
+**Kunal Kotwani**
 
-The system combines collaborative filtering using SVD with content-based filtering using TF-IDF and cosine similarity. Instead of using fixed weights, the system dynamically adjusts the contribution of each component according to the user's interaction history.
-
-For users with limited history, the system shifts toward content-based recommendations, while users with more interactions receive greater influence from collaborative filtering.
-
-The system was evaluated using Precision@10, Recall@10, and NDCG@10 on both cold-start and warm-user scenarios.
-
-The project demonstrates how combining multiple recommendation strategies can provide a more flexible recommendation system capable of handling different levels of available user information.
+B.Tech Computer Science and Engineering
+VIT Vellore
 
 ---
 
-**Project:** Hybrid Recommendation Engine with Cold-Start Handling
+## License
 
-**Dataset:** MovieLens 1M
+This project is licensed under the **MIT License**. See the `LICENSE` file for details.
